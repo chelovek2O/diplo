@@ -1,0 +1,6 @@
+_pycache_
+.env
+pets.db
+.config.py
+./_pycache_
+handlers\__pycache__

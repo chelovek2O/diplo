@@ -1,31 +1,107 @@
-# keyboards/inline.py
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-def pet_choice_keyboard(pets):
-    buttons = []
-    for pet_id, name, species in pets:
-        buttons.append([InlineKeyboardButton(text=f"{name} ({species})", callback_data=f"post_pet_{pet_id}")])
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-def post_action_keyboard(post_id, user_liked=False):
-    like_text = "❤️ Лайк" if not user_liked else "❤️ Убрать лайк"
+def main_menu():
     buttons = [
-        [InlineKeyboardButton(text=like_text, callback_data=f"like_{post_id}"),
-         InlineKeyboardButton(text="💬 Коммент", callback_data=f"comment_{post_id}")],
-        [InlineKeyboardButton(text="👤 Подписаться", callback_data=f"follow_author")]  # упростим
+        [InlineKeyboardButton(text="🐾 Добавить питомца", callback_data="add_pet")],
+        [InlineKeyboardButton(text="📋 Мои питомцы", callback_data="my_pets")],
+        [InlineKeyboardButton(text="📝 Создать пост", callback_data="create_post")],
+        [InlineKeyboardButton(text="📰 Лента подписок", callback_data="feed")],
+        [InlineKeyboardButton(text="👤 Мой профиль", callback_data="profile")],
+        [InlineKeyboardButton(text="🔔 Мои подписки", callback_data="my_subscriptions")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-def admin_post_keyboard(post_id):
+def cancel_button():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="❌ Удалить пост", callback_data=f"admin_del_{post_id}")]
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_action")]
     ])
 
-def post_buttons(post_id, likes_count, is_admin=False):
+def back_to_main_button():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔙 Главное меню", callback_data="back_to_main")]
+    ])
+
+def pets_keyboard(pets):
+    buttons = []
+    for pet in pets:
+        pet_id, name, species, _ = pet
+        buttons.append([InlineKeyboardButton(text=f"{name} ({species})", callback_data=f"pet_{pet_id}")])
+    buttons.append([InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_main")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def my_pets_keyboard(pets):
+    buttons = []
+    for pet in pets:
+        pet_id, name, species, _ = pet
+        buttons.append([InlineKeyboardButton(text=f"{name} ({species})", callback_data=f"select_pet_{pet_id}"),
+                        InlineKeyboardButton(text="❌ Удалить", callback_data=f"del_pet_{pet_id}")])
+    buttons.append([InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_main")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def confirm_delete_pet_keyboard(pet_id):
     buttons = [
-        InlineKeyboardButton(text=f"❤️ {likes_count}", callback_data=f"like_{post_id}"),
-        InlineKeyboardButton(text="💬 Ответить", callback_data=f"reply_{post_id}")
+        [InlineKeyboardButton(text="✅ Да, удалить", callback_data=f"confirm_del_pet_{pet_id}"),
+         InlineKeyboardButton(text="❌ Нет", callback_data="my_pets")]
     ]
-    if is_admin:
-        buttons.append(InlineKeyboardButton(text="❌ Удалить", callback_data=f"delpost_{post_id}"))
-    return InlineKeyboardMarkup(inline_keyboard=[buttons])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def feed_navigation_buttons(post_index, total_posts, is_subscribed, author_telegram_id, current_user_id, post_id):
+    """Кнопки для ленты: навигация, лайк, подписка, назад в меню (НЕТ удаления)"""
+    nav_buttons = []
+    if post_index > 0:
+        nav_buttons.append(InlineKeyboardButton(text="◀️ Предыдущий", callback_data="feed_prev"))
+    if post_index < total_posts - 1:
+        nav_buttons.append(InlineKeyboardButton(text="Следующий ▶️", callback_data="feed_next"))
+    
+    # Лайк
+    nav_buttons.append(InlineKeyboardButton(text="❤️ Лайк", callback_data=f"like_{post_id}"))
+    
+    # Подписка/отписка (если не на себя)
+    if author_telegram_id != current_user_id:
+        if is_subscribed:
+            nav_buttons.append(InlineKeyboardButton(text="🔔 Отписаться", callback_data=f"feed_unsub_{author_telegram_id}"))
+        else:
+            nav_buttons.append(InlineKeyboardButton(text="➕ Подписаться", callback_data=f"feed_sub_{author_telegram_id}"))
+    
+    nav_buttons.append(InlineKeyboardButton(text="🔙 Меню", callback_data="back_to_main"))
+    
+    # Разбиваем по 2 кнопки в строке для удобства
+    keyboard = []
+    for i in range(0, len(nav_buttons), 2):
+        if i + 1 < len(nav_buttons):
+            keyboard.append([nav_buttons[i], nav_buttons[i+1]])
+        else:
+            keyboard.append([nav_buttons[i]])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def subscriptions_keyboard(subscriptions_list):
+    buttons = []
+    for sub in subscriptions_list:
+        sub_telegram_id, username, first_name = sub
+        display = f"@{username}" if username else first_name
+        buttons.append([InlineKeyboardButton(text=f"{display}", callback_data="ignore"),
+                        InlineKeyboardButton(text="❌ Отписаться", callback_data=f"unsub_{sub_telegram_id}")])
+    buttons.append([InlineKeyboardButton(text="➕ Подписаться", callback_data="subscribe_new")])
+    buttons.append([InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_main")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def admin_user_actions_keyboard(target_telegram_id, is_banned):
+    buttons = []
+    buttons.append([InlineKeyboardButton(text="📸 Посты пользователя", callback_data=f"admin_user_posts_{target_telegram_id}")])
+    if is_banned:
+        buttons.append([InlineKeyboardButton(text="🔓 Разбан", callback_data=f"admin_unban_{target_telegram_id}")])
+    else:
+        buttons.append([InlineKeyboardButton(text="🔨 Забанить (24ч)", callback_data=f"admin_ban_{target_telegram_id}")])
+    buttons.append([InlineKeyboardButton(text="🔙 Назад в админ-панель", callback_data="admin_panel_back")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def admin_posts_keyboard(posts, target_telegram_id):
+    buttons = []
+    for post in posts:
+        post_id = post[0]
+        pet_name = post[5] or "без питомца"
+        caption_preview = (post[3][:30] + '...') if post[3] else ''
+        text = f"ID:{post_id} {pet_name} | {caption_preview}"
+        buttons.append([InlineKeyboardButton(text=text, callback_data=f"admin_delpost_{post_id}_{target_telegram_id}")])
+    buttons.append([InlineKeyboardButton(text="🔙 Назад к пользователю", callback_data=f"admin_user_{target_telegram_id}")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
