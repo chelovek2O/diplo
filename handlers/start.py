@@ -1,4 +1,3 @@
-# handlers/start.py
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
@@ -7,6 +6,7 @@ from db import register_user
 from keyboards.inline import main_menu
 
 router = Router()
+
 
 @router.message(Command('start'))
 async def start_cmd(message: Message):
@@ -17,14 +17,20 @@ async def start_cmd(message: Message):
         reply_markup=main_menu()
     )
 
+
 @router.callback_query(F.data == "back_to_main")
 async def back_to_main(callback: CallbackQuery, state: FSMContext):
     await state.clear()
-    await callback.message.edit_text("Главное меню:", reply_markup=main_menu())
+    # Отправляем новое сообщение с главным меню
+    await callback.message.answer("Главное меню:", reply_markup=main_menu())
+    # Удаляем старое сообщение
+    await callback.message.delete()
     await callback.answer()
+
 
 @router.callback_query(F.data == "cancel_action")
 async def cancel_action(callback: CallbackQuery, state: FSMContext):
     await state.clear()
-    await callback.message.edit_text("Действие отменено.", reply_markup=main_menu())
+    await callback.message.answer("Действие отменено.", reply_markup=main_menu())
+    await callback.message.delete()
     await callback.answer()

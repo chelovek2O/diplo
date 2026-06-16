@@ -7,22 +7,24 @@ from keyboards.inline import subscriptions_keyboard, main_menu, back_to_main_but
 router = Router()
 temp_subscribe = {}
 
+
 @router.callback_query(F.data == "my_subscriptions")
 async def show_subscriptions(callback: CallbackQuery):
     subs = get_user_subscriptions(callback.from_user.id)
     if not subs:
-        # Используем delete + send, чтобы избежать ошибки "no text to edit"
-        await callback.message.delete()
         await callback.message.answer("Вы ни на кого не подписаны.\nИспользуйте '➕ Подписаться', чтобы добавить автора.",
                                       reply_markup=subscriptions_keyboard([]))
+        await callback.message.delete()
     else:
         text = "🔔 Ваши подписки:\n"
         for sub in subs:
             _, username, first_name = sub
             display = f"@{username}" if username else first_name
             text += f"- {display}\n"
-        await callback.message.edit_text(text, reply_markup=subscriptions_keyboard(subs))
+        await callback.message.answer(text, reply_markup=subscriptions_keyboard(subs))
+        await callback.message.delete()
     await callback.answer()
+
 
 @router.callback_query(F.data == "subscribe_new")
 async def subscribe_new(callback: CallbackQuery):
@@ -30,6 +32,7 @@ async def subscribe_new(callback: CallbackQuery):
                                      reply_markup=back_to_main_button())
     temp_subscribe[callback.from_user.id] = True
     await callback.answer()
+
 
 @router.message(F.text)
 async def handle_subscribe_input(message: Message, state: FSMContext):
@@ -56,6 +59,7 @@ async def handle_subscribe_input(message: Message, state: FSMContext):
     else:
         await message.answer("Не удалось подписаться (возможно уже подписаны).", reply_markup=main_menu())
 
+
 @router.callback_query(F.data.startswith("unsub_"))
 async def unsubscribe(callback: CallbackQuery):
     author_id = int(callback.data.split("_")[1])
@@ -63,12 +67,13 @@ async def unsubscribe(callback: CallbackQuery):
     await callback.answer("Вы отписались", show_alert=False)
     subs = get_user_subscriptions(callback.from_user.id)
     if not subs:
-        await callback.message.delete()
         await callback.message.answer("Вы ни на кого не подписаны.", reply_markup=subscriptions_keyboard([]))
+        await callback.message.delete()
     else:
         text = "🔔 Ваши подписки:\n"
         for sub in subs:
             _, username, first_name = sub
             display = f"@{username}" if username else first_name
             text += f"- {display}\n"
-        await callback.message.edit_text(text, reply_markup=subscriptions_keyboard(subs))
+        await callback.message.answer(text, reply_markup=subscriptions_keyboard(subs))
+        await callback.message.delete()

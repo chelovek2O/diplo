@@ -46,26 +46,18 @@ def confirm_delete_pet_keyboard(pet_id):
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def feed_navigation_buttons(post_index, total_posts, is_subscribed, author_telegram_id, current_user_id, post_id):
-    """Кнопки для ленты: навигация, лайк, подписка, назад в меню (НЕТ удаления)"""
     nav_buttons = []
     if post_index > 0:
         nav_buttons.append(InlineKeyboardButton(text="◀️ Предыдущий", callback_data="feed_prev"))
     if post_index < total_posts - 1:
         nav_buttons.append(InlineKeyboardButton(text="Следующий ▶️", callback_data="feed_next"))
-    
-    # Лайк
     nav_buttons.append(InlineKeyboardButton(text="❤️ Лайк", callback_data=f"like_{post_id}"))
-    
-    # Подписка/отписка (если не на себя)
     if author_telegram_id != current_user_id:
         if is_subscribed:
             nav_buttons.append(InlineKeyboardButton(text="🔔 Отписаться", callback_data=f"feed_unsub_{author_telegram_id}"))
         else:
             nav_buttons.append(InlineKeyboardButton(text="➕ Подписаться", callback_data=f"feed_sub_{author_telegram_id}"))
-    
     nav_buttons.append(InlineKeyboardButton(text="🔙 Меню", callback_data="back_to_main"))
-    
-    # Разбиваем по 2 кнопки в строке для удобства
     keyboard = []
     for i in range(0, len(nav_buttons), 2):
         if i + 1 < len(nav_buttons):
@@ -92,7 +84,7 @@ def admin_user_actions_keyboard(target_telegram_id, is_banned):
         buttons.append([InlineKeyboardButton(text="🔓 Разбан", callback_data=f"admin_unban_{target_telegram_id}")])
     else:
         buttons.append([InlineKeyboardButton(text="🔨 Забанить (24ч)", callback_data=f"admin_ban_{target_telegram_id}")])
-    buttons.append([InlineKeyboardButton(text="🔙 Назад в админ-панель", callback_data="admin_panel_back")])
+    buttons.append([InlineKeyboardButton(text="🔙 Назад в главное меню", callback_data="back_to_main")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def admin_posts_keyboard(posts, target_telegram_id):

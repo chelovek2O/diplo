@@ -10,7 +10,6 @@ async def like_callback(callback: CallbackQuery):
     if is_user_banned(callback.from_user.id):
         await callback.answer("Вы забанены и не можете ставить лайки.", show_alert=True)
         return
-    
     post_id = int(callback.data.split("_")[1])
     like_post(callback.from_user.id, post_id)
     new_count = get_likes_count(post_id)

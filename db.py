@@ -1,4 +1,3 @@
-# db.py
 import sqlite3
 from datetime import datetime, timedelta
 
@@ -57,8 +56,13 @@ def init_db():
     conn.commit()
     conn.close()
 
+def delete_old_posts():
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM posts WHERE created_at < datetime('now', '-1 year')")
+    conn.commit()
+    conn.close()
 
-# ----- users -----
 def get_user(telegram_id):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -66,7 +70,6 @@ def get_user(telegram_id):
     user = cur.fetchone()
     conn.close()
     return user
-
 
 def get_user_by_username(username):
     conn = sqlite3.connect(DB_NAME)
@@ -76,14 +79,13 @@ def get_user_by_username(username):
     conn.close()
     return user
 
-
 def register_user(telegram_id, username, first_name):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     cur.execute('INSERT OR IGNORE INTO users (telegram_id, username, first_name, banned_until) VALUES (?, ?, ?, NULL)',
                 (telegram_id, username, first_name))
     conn.commit()
-    # АВТОПОДПИСКА НА СЕБЯ
+    # автоподписка на себя
     cur.execute('SELECT id FROM users WHERE telegram_id = ?', (telegram_id,))
     user_id = cur.fetchone()
     if user_id:
@@ -91,7 +93,6 @@ def register_user(telegram_id, username, first_name):
                     (user_id[0], user_id[0]))
         conn.commit()
     conn.close()
-
 
 def is_user_banned(telegram_id):
     conn = sqlite3.connect(DB_NAME)
@@ -105,7 +106,6 @@ def is_user_banned(telegram_id):
             return True
     return False
 
-
 def ban_user(telegram_id, hours=24):
     until = datetime.now() + timedelta(hours=hours)
     conn = sqlite3.connect(DB_NAME)
@@ -114,7 +114,6 @@ def ban_user(telegram_id, hours=24):
     conn.commit()
     conn.close()
 
-
 def unban_user(telegram_id):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -122,8 +121,6 @@ def unban_user(telegram_id):
     conn.commit()
     conn.close()
 
-
-# ----- pets -----
 def get_user_pets(telegram_id):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -136,7 +133,6 @@ def get_user_pets(telegram_id):
     conn.close()
     return pets
 
-
 def add_pet(telegram_id, name, species, file_id=None):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -147,7 +143,6 @@ def add_pet(telegram_id, name, species, file_id=None):
                     (user[0], name, species, file_id))
         conn.commit()
     conn.close()
-
 
 def delete_pet(pet_id, telegram_id):
     conn = sqlite3.connect(DB_NAME)
@@ -160,8 +155,6 @@ def delete_pet(pet_id, telegram_id):
     conn.commit()
     conn.close()
 
-
-# ----- posts -----
 def create_post(telegram_id, pet_id, file_id, file_type, caption):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -173,12 +166,9 @@ def create_post(telegram_id, pet_id, file_id, file_type, caption):
         conn.commit()
     conn.close()
 
-
 def get_post_by_index(telegram_id, index):
-    """Возвращает пост по индексу из ленты (включая свои посты)"""
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
-    # Получаем список авторов, на которых подписан пользователь (включая себя)
     cur.execute('''
         SELECT author_id FROM subscriptions 
         WHERE subscriber_id = (SELECT id FROM users WHERE telegram_id = ?)
@@ -204,9 +194,7 @@ def get_post_by_index(telegram_id, index):
         return all_posts[index], len(all_posts)
     return None, 0
 
-
 def get_user_posts(telegram_id, limit=10):
-    """Получить все посты пользователя (для профиля)"""
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     cur.execute('''
@@ -223,9 +211,7 @@ def get_user_posts(telegram_id, limit=10):
     conn.close()
     return posts
 
-
 def get_posts_by_pet(telegram_id, pet_id):
-    """Получить все посты конкретного питомца пользователя"""
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     cur.execute('''
@@ -241,9 +227,7 @@ def get_posts_by_pet(telegram_id, pet_id):
     conn.close()
     return posts
 
-
 def get_posts_by_user(telegram_id):
-    """Получить все посты пользователя (для админ-панели)"""
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     cur.execute('''
@@ -259,9 +243,7 @@ def get_posts_by_user(telegram_id):
     conn.close()
     return posts
 
-
 def delete_post(post_id, user_telegram_id=None, is_admin=False):
-    """Удалить пост. Если is_admin=False, проверяем, что пост принадлежит пользователю"""
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     if is_admin:
@@ -275,8 +257,6 @@ def delete_post(post_id, user_telegram_id=None, is_admin=False):
     conn.commit()
     conn.close()
 
-
-# ----- likes -----
 def like_post(user_telegram, post_id):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -287,7 +267,6 @@ def like_post(user_telegram, post_id):
         conn.commit()
     conn.close()
 
-
 def get_likes_count(post_id):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -296,8 +275,6 @@ def get_likes_count(post_id):
     conn.close()
     return count
 
-
-# ----- subscriptions -----
 def get_user_subscriptions(telegram_id):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -311,7 +288,6 @@ def get_user_subscriptions(telegram_id):
     conn.close()
     return subs
 
-
 def is_subscribed(subscriber_telegram, author_telegram):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -323,7 +299,6 @@ def is_subscribed(subscriber_telegram, author_telegram):
     row = cur.fetchone()
     conn.close()
     return row is not None
-
 
 def add_subscription(subscriber_telegram, author_telegram):
     if subscriber_telegram == author_telegram:
@@ -341,7 +316,6 @@ def add_subscription(subscriber_telegram, author_telegram):
         success = False
     conn.close()
     return success
-
 
 def remove_subscription(subscriber_telegram, author_telegram):
     conn = sqlite3.connect(DB_NAME)
